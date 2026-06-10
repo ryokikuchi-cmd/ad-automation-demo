@@ -86,12 +86,39 @@ padding:12px 15px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .prop-act{font-size:12px;color:var(--c-text-secondary);}
 .prop-line{font-size:12px;color:var(--c-text-secondary);margin-top:5px;}
 .prop-copy{font-size:12px;color:var(--c-text);margin-top:4px;}
+/* DEMOバナー */
+.demo-banner{background:#fff3e0;color:#e8710a;text-align:center;font-size:12px;font-weight:600;
+padding:7px;border-radius:6px;margin-bottom:10px;border:1px solid #ffe0b2;}
+/* サイドバー ナビ（参考RPP風・アクティブはブルー） */
+section[data-testid="stSidebar"] [role="radiogroup"]{gap:4px;margin-top:4px;}
+section[data-testid="stSidebar"] [role="radiogroup"] label{display:flex;align-items:center;width:100%;
+padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--c-text);transition:background .15s;}
+section[data-testid="stSidebar"] [role="radiogroup"] label:hover{background:rgba(26,58,92,.06);}
+section[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:#1a73e8;color:#fff;font-weight:600;}
+section[data-testid="stSidebar"] [role="radiogroup"] label>div:first-child{display:none;}
+/* st.container(border=True) をカード化 */
+div[data-testid="stVerticalBlockBorderWrapper"]{background:#fff;border-radius:var(--radius);
+box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.card-badge{display:inline-block;background:#e8f5e9;color:#0d904f;font-size:11px;font-weight:600;
+padding:2px 10px;border-radius:20px;float:right;}
 </style>""", unsafe_allow_html=True)
 
-st.markdown('<div class="app-header"><div class="app-title">Meta Ad Automation</div>'
+# 大項目：広告媒体（プラットフォーム）
+PLATFORMS = ["META", "Google", "X（旧Twitter）", "LINE", "TikTok"]
+platform = st.sidebar.selectbox("広告媒体（プラットフォーム）", PLATFORMS, index=0, key="platform")
+st.sidebar.markdown("---")
+
+st.markdown('<div class="demo-banner">DEMO MODE — このツールはデモ用のサンプルデータで動作しています</div>',
+            unsafe_allow_html=True)
+st.markdown(f'<div class="app-header"><div class="app-title">{platform} Ad Automation</div>'
             '<div class="app-meta">キープサーチ（デモ）</div></div>', unsafe_allow_html=True)
 
-view = st.sidebar.radio("メニュー", ["📊 広告数値レポート", "📈 分析結果", "💡 改善提案"], key="nav")
+if platform != "META":
+    st.info(f"🚧 {platform}広告 は現在開発中です（β）。本デモは左上で「META」を選択してご確認ください。")
+    st.stop()
+
+view = st.sidebar.radio("メニュー", ["📊 広告数値レポート", "📈 分析結果", "💡 改善提案",
+                                  "⚙️ 広告運用設定"], key="nav")
 
 
 def yen(x):
@@ -401,6 +428,115 @@ elif view == "📊 広告数値レポート":
         st.markdown(rep_table(cur_a, cmp_a, ["gender", "age"], "性別 / 年齢"), unsafe_allow_html=True)
     with tabs[6]:
         st.markdown(rep_table(cur, cmp, ["device"], "デバイス"), unsafe_allow_html=True)
+
+# ============================ ⚙️ 広告運用設定 ============================
+elif view == "⚙️ 広告運用設定":
+    st.markdown('<div class="sec-title">広告運用設定（Meta）</div>', unsafe_allow_html=True)
+    adsets = sorted(plc_all["adset"].dropna().unique()) if not plc_all.empty else ["（データなし）"]
+    target = st.selectbox("対象の広告セット", adsets)
+    st.caption("Meta広告で変更できる主要項目です。階層：キャンペーン → 広告セット → 配置。"
+               "（デモ：保存は擬似動作。実際のMeta反映は ads_management 連携後）")
+
+    # ① キャンペーン設定
+    with st.container(border=True):
+        st.markdown('<div class="sec-title">① キャンペーン設定'
+                    '<span class="card-badge">有効</span></div>', unsafe_allow_html=True)
+        c = st.columns(3)
+        objective = c[0].selectbox("キャンペーンの目的", [
+            "売上（コンバージョン）", "リード", "トラフィック", "エンゲージメント", "認知度", "アプリの宣伝"])
+        cbo = c[1].selectbox("予算最適化", ["広告セット予算（ABO）", "キャンペーン予算最適化（CBO/Advantage）"])
+        special = c[2].selectbox("特別広告カテゴリ", ["なし", "信用", "雇用", "住宅", "社会問題・選挙・政治"])
+
+    # ② 予算・スケジュール
+    with st.container(border=True):
+        st.markdown('<div class="sec-title">② 予算・配信スケジュール</div>', unsafe_allow_html=True)
+        c = st.columns(4)
+        budget_type = c[0].selectbox("予算タイプ", ["日予算", "通算予算"])
+        budget = c[1].number_input("予算額（円）", min_value=500, value=12000, step=500)
+        ADJ = {"-50%": .5, "-30%": .7, "-20%": .8, "-10%": .9, "±0%": 1.0,
+               "+10%": 1.1, "+20%": 1.2, "+30%": 1.3, "+50%": 1.5}
+        adj = c[2].select_slider("予算の増減調整", options=list(ADJ), value="±0%")
+        new_budget = int(budget * ADJ[adj])
+        c[3].metric("調整後の予算", yen(new_budget), adj if adj != "±0%" else None)
+        cc = st.columns(3)
+        start = cc[0].date_input("開始日", value=date(2026, 6, 1))
+        use_end = cc[1].selectbox("終了設定", ["終了日なし（継続）", "終了日を設定"])
+        end = cc[2].date_input("終了日", value=date(2026, 6, 30), disabled=(use_end == "終了日なし（継続）"))
+        sched = st.multiselect("配信時間帯（広告のスケジュール・任意）",
+                               [f"{h:02d}時" for h in range(24)], default=[])
+
+    # ③ 最適化・入札・計測
+    with st.container(border=True):
+        st.markdown('<div class="sec-title">③ 最適化・入札・計測</div>', unsafe_allow_html=True)
+        c = st.columns(3)
+        opt_goal = c[0].selectbox("配信の最適化対象", [
+            "コンバージョン", "ランディングページビュー", "リンククリック", "リーチ", "インプレッション",
+            "動画の継続視聴", "リード（インスタントフォーム）"])
+        cv_event = c[1].selectbox("コンバージョンイベント（CV目的）", [
+            "購入", "リード", "カートに追加", "決済を開始", "支払い情報の追加", "登録完了",
+            "コンテンツビュー", "検索", "アプリインストール", "お問い合わせ"])
+        bid = c[2].selectbox("入札戦略", [
+            "最高ボリューム（自動）", "入札価格上限（Bid cap）", "目標コスト単価（Cost cap）", "最小ROAS（ROAS目標）"])
+        c2 = st.columns(3)
+        if bid == "最小ROAS（ROAS目標）":
+            c2[0].number_input("目標ROAS（%）", min_value=0, value=300, step=10)
+        elif bid != "最高ボリューム（自動）":
+            c2[0].number_input("上限/目標 単価（円）", min_value=0, value=5000, step=100)
+        else:
+            c2[0].caption("自動入札のため金額指定なし")
+        attribution = c2[1].selectbox("アトリビューション設定",
+                                      ["クリック後7日（既定）", "クリック後1日", "クリック後7日＋ビュー後1日", "クリック後1日＋ビュー後1日"])
+        billing = c2[2].selectbox("課金対象", ["インプレッション（CPM）", "リンククリック（CPC）"])
+
+    # ④ ターゲティング
+    with st.container(border=True):
+        st.markdown('<div class="sec-title">④ ターゲティング（オーディエンス）</div>', unsafe_allow_html=True)
+        c = st.columns(4)
+        geo = c[0].text_input("地域", "日本")
+        age_min = c[1].number_input("年齢（下限）", 13, 65, 25)
+        age_max = c[2].number_input("年齢（上限）", 13, 65, 54)
+        gender = c[3].selectbox("性別", ["すべて", "男性", "女性"])
+        adv_aud = st.toggle("Advantage+ オーディエンス（自動拡張・推奨）", value=True)
+        interests = st.text_input("詳細ターゲット（興味・関心／行動／属性）", "経営者, 採用・人事, 中小企業")
+        cc = st.columns(2)
+        custom_aud = cc[0].text_input("カスタムオーディエンス（除外/含む）", "")
+        lookalike = cc[1].text_input("類似オーディエンス（%）", "1%")
+
+    # ⑤ 配置（プレースメント）
+    with st.container(border=True):
+        st.markdown('<div class="sec-title">⑤ 配置（プレースメント）</div>', unsafe_allow_html=True)
+        place_mode = st.radio("配置タイプ", ["Advantage+ 配置（自動・推奨）", "手動配置"], horizontal=True)
+        if place_mode == "手動配置":
+            media = st.multiselect("媒体", ["Facebook", "Instagram", "Messenger", "Audience Network"],
+                                   default=["Facebook", "Instagram"])
+            positions = st.multiselect("配置（ポジション）",
+                                       ["フィード", "ストーリーズ", "リール", "発見タブ", "検索結果",
+                                        "Marketplace", "インストリーム動画", "右側広告（FB）"],
+                                       default=["フィード", "ストーリーズ", "リール"])
+        device = st.selectbox("デバイス", ["すべて", "モバイルのみ", "デスクトップのみ"])
+        freq_on = st.toggle("フリークエンシーキャップを設定", value=False)
+        if freq_on:
+            fc = st.columns(2)
+            fc[0].number_input("上限表示回数", 1, 20, 2)
+            fc[1].number_input("期間（日）", 1, 30, 7)
+
+    # 保存
+    st.divider()
+    if st.button("💾 設定を保存（デモ）", type="primary"):
+        st.success(f"広告セット「{target}」の設定を保存しました（デモ）。"
+                   "実際のMeta反映は ads_management 連携後に有効化されます。")
+        st.json({
+            "広告セット": target,
+            "キャンペーン": {"目的": objective, "予算最適化": cbo, "特別カテゴリ": special},
+            "予算": {"タイプ": budget_type, "現予算": budget, "調整": adj, "調整後": new_budget,
+                   "開始": str(start), "終了": ("なし" if use_end.startswith("終了日なし") else str(end))},
+            "最適化・入札": {"最適化対象": opt_goal, "CVイベント": cv_event, "入札戦略": bid,
+                       "アトリビューション": attribution, "課金対象": billing},
+            "ターゲティング": {"地域": geo, "年齢": f"{age_min}-{age_max}", "性別": gender,
+                        "Advantage+オーディエンス": adv_aud, "詳細ターゲット": interests,
+                        "類似": lookalike},
+            "配置": {"タイプ": place_mode, "デバイス": device, "フリークエンシーキャップ": freq_on},
+        })
 
 # ============================ 💡 改善提案 ============================
 else:
