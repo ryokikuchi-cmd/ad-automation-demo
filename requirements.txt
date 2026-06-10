@@ -1,0 +1,27 @@
+# --- Meta広告 ---
+facebook-business>=19.0.0      # Meta Marketing API 公式SDK（⓪取得・⑤入稿）
+
+# --- データ処理 ---
+pandas>=2.2.0                  # ①BI集計・分析
+numpy>=1.26.0
+
+# --- DB（Supabase / PostgreSQL） ---
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+requests>=2.31.0               # 画像DL（Vision分析）
+
+# --- 商談スプシ取込 ---
+gspread>=6.0.0                 # ②商談スプシ読み取り
+google-auth>=2.28.0
+
+# --- AI（ビジュアル因果分析・コピー生成） ---
+anthropic>=0.40.0             # Claude Vision（②）/ コピー生成（④）
+
+# --- 承認UI ---
+streamlit>=1.40.0            # ⑤提案承認・入稿トリガー
+
+# --- 設定・ユーティリティ ---
+PyYAML>=6.0
+python-dotenv>=1.0.0
+cryptography>=42.0.0          # access_token暗号化

@@ -1,0 +1,9 @@
+.env
+config/accounts.yaml
+config/service_account.json
+local.db
+demo.db
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

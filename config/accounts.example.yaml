@@ -1,0 +1,34 @@
+# テナント（クライアント）と広告アカウントの設定
+# 実運用では accounts.yaml にコピーして使用（accounts.yaml は .gitignore 済み）
+
+tenants:
+  - name: キープサーチ
+    ad_accounts:
+      - meta_account_id: act_1347442399638203
+        name: キープサーチ_Meta
+        # access_token は環境変数 or Secrets経由で注入（ここには書かない）
+
+        # ② 商談スプシ取込設定（クライアントが記入する特定スプシ）
+        appointments_sheet:
+          spreadsheet_id: REPLACE_WITH_SHEET_ID   # 商談入力用スプシのID
+          worksheet: 商談入力                       # シート名
+          # service_account_json: ./config/service_account.json  # 任意（未指定はenv）
+          # 列マッピング（テンプレ列名 → 内部フィールド）。実データ形式に準拠
+          columns:
+            date: 年月          # YYYY-MM（月次）or YYYY-MM-DD（日次）
+            adset: 広告セット
+            ad: 広告            # 任意（広告単位で分かる場合）
+            appointments: 商談数
+            won: 成約数         # 任意
+
+        # ② 分析パラメータ
+        analysis:
+          active_days: 5            # アクティブ広告セット判定（直近N日で費用>0）
+          propose_days: 2           # 提案対象（直近N日で配信中のセット）
+          min_impressions: 5000     # データ不足判定の閾値
+          min_leads: 5
+          # AI機能（要 ANTHROPIC_API_KEY。コスト発生のため既定OFF）
+          vision: false             # ② Vision因果分析（なぜ効くか）
+          vision_limit: 10
+          creative: false           # ④ バナースクリプト＋コピー案生成
+          creative_limit: 10

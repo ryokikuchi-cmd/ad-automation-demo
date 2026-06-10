@@ -1,0 +1,26 @@
+name: daily-run
+
+on:
+  schedule:
+    - cron: "0 23 * * *"   # UTC23:00 = JST08:00（日次バッチ）
+  workflow_dispatch: {}     # 手動実行も可
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Run daily batch
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          META_APP_ID: ${{ secrets.META_APP_ID }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: python jobs/daily_run.py
